@@ -11,13 +11,10 @@ import path from 'node:path';
 import { UserError } from './src/core/errors';
 import { loadCommands } from './src/core/command-loader';
 import { CommanderError } from 'commander';
+import { APP_COMMANDS_DIR, CORE_COMMANDS_DIR } from './src/core/paths';
 
 async function main() {
-    const commandsFolder: string = path.join(
-        import.meta.dirname,
-        'src/commands',
-    );
-    const commands = await loadCommands(commandsFolder);
+    const commands = await loadCommands(APP_COMMANDS_DIR, CORE_COMMANDS_DIR);
     const kernel = new Kernel(commands);
     await kernel.handle(argv);
 }

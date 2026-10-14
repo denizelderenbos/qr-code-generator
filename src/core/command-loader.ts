@@ -4,23 +4,30 @@ import path from 'node:path';
 import { UserError } from './errors';
 
 export async function loadCommands(
-    folder: string,
+    ...folders: string[]
 ): Promise<Map<string, CommandClass>> {
     const commands = new Map<string, CommandClass>();
     const sourceFiles = new Map<string, string>();
+    const allFiles: string[] = [];
 
-    if (!fs.existsSync(folder)) {
-        throw new Error(`Could not find the commands folder: \`${folder}\``);
+    for (const folder of folders) {
+        if (!fs.existsSync(folder)) {
+            throw new Error(
+                `Could not find the commands folder: \`${folder}\``,
+            );
+        }
+        for (const name of fs.readdirSync(folder)) {
+            allFiles.push(path.join(folder, name));
+        }
     }
 
-    const commandFiles = fs.readdirSync(folder);
-    for (const file of commandFiles) {
+    for (const file of allFiles) {
         // Only real command files
         if (!file.endsWith('command.js') && !file.endsWith('command.ts')) {
             continue;
         }
 
-        const imported = (await import(path.join(folder, file))) as {
+        const imported = (await import(file)) as {
             default: CommandClass;
         };
 

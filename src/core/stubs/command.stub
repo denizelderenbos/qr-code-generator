@@ -1,0 +1,11 @@
+import BaseCommand from '../core/command';
+
+export default class {{ className }} extends BaseCommand {
+    static commandName = '{{ commandName }}';
+    static description = 'TODO: describe what {{ commandName }} does';
+
+    run(): Promise<void> {
+        console.log('Hello from {{ commandName }}');
+        return Promise.resolve();
+    }
+}
