@@ -1,0 +1,57 @@
+import BaseCommand, { CommandClass } from './command';
+import fs from 'node:fs';
+import path from 'node:path';
+import { UserError } from './errors';
+
+export async function loadCommands(
+    folder: string,
+): Promise<Map<string, CommandClass>> {
+    const commands = new Map<string, CommandClass>();
+    const sourceFiles = new Map<string, string>();
+
+    if (!fs.existsSync(folder)) {
+        throw new Error(`Could not find the commands folder: \`${folder}\``);
+    }
+
+    const commandFiles = fs.readdirSync(folder);
+    for (const file of commandFiles) {
+        // Only real command files
+        if (!file.endsWith('command.js') && !file.endsWith('command.ts')) {
+            continue;
+        }
+
+        const imported = (await import(path.join(folder, file))) as {
+            default: CommandClass;
+        };
+
+        // Check that the class was exported as default
+        if (!Object.prototype.hasOwnProperty.call(imported, 'default')) {
+            throw new UserError(`${file} doesn't have a default export`);
+        }
+
+        // Check that the default export extends BaseCommand
+        const commandClass = imported.default as unknown;
+        if (!(
+            typeof commandClass === 'function' &&
+            commandClass.prototype instanceof BaseCommand
+        )) {
+            throw new UserError(
+                `${file}: the default export does not extend BaseCommand`,
+            );
+        }
+
+        // Check if a duplicate commandName exists
+        const commandName = imported.default.commandName;
+        const existingFile = sourceFiles.get(commandName);
+        if (existingFile !== undefined) {
+            throw new UserError(
+                `Duplicate commandName '${commandName}' in ${existingFile} and ${file}`,
+            );
+        }
+
+        sourceFiles.set(commandName, file);
+        commands.set(commandName, imported.default);
+    }
+
+    return new Map([...commands.entries()].sort());
+}
